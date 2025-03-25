@@ -1,51 +1,70 @@
-console.log("JavaScript is running");
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginButton = document.getElementById('loginButton');
+    const loadingSpinner = document.getElementById('loadingSpinner'); // Optionally, for showing loading state
 
-const c = document.querySelector('canvas');
-const ctx = c.getContext('2d');
-let cw = c.width = window.innerWidth;
-let ch = c.height = window.innerHeight;
-const bubbles = [];
-
-function createBubble() {
-    return {
-        x: Math.random() * cw,
-        y: ch + 100,
-        radius: Math.random() * 50 + 10,
-        speed: Math.random() * 3 + 1,
-        color: `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`
-    };
-}
-
-function drawBubble(bubble) {
-    ctx.beginPath();
-    ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
-    ctx.fillStyle = bubble.color;
-    ctx.fill();
-}
-
-function updateBubbles() {
-    ctx.clearRect(0, 0, cw, ch);
-    
-    if (bubbles.length < 50) {
-        bubbles.push(createBubble());
-    }
-    
-    for (let i = bubbles.length - 1; i >= 0; i--) {
-        const bubble = bubbles[i];
-        bubble.y -= bubble.speed;
-        drawBubble(bubble);
-        
-        if (bubble.y + bubble.radius < 0) {
-            bubbles.splice(i, 1);
+    // Validate input fields before submitting
+    function validateForm(username, password) {
+        if (!username || !password) {
+            alert('Please fill out both username and password');
+            return false;
         }
+        return true;
     }
-    
-    requestAnimationFrame(updateBubbles);
-}
 
-updateBubbles();
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-window.addEventListener('resize', () => {
-    cw = c.width = window.innerWidth;
-    ch = c.height = window.innerHeight;
+        const username = usernameInput.value;
+        const password = passwordInput.value;
+
+        // Validate username and password
+        if (!validateForm(username, password)) return;
+
+        console.log('Attempting login with username:', username);
+
+        // Show loading spinner while request is in progress (optional)
+        if (loadingSpinner) loadingSpinner.style.display = 'block';
+
+        fetch('/api/login', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => {
+            console.log('Login response status:', response.status);
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Login response data:', data);
+            if (data.success) {
+                console.log('Login successful');
+                
+                // Clear the form upon successful login (optional)
+                usernameInput.value = '';
+                passwordInput.value = '';
+
+                // Redirect to another page after successful login
+                window.location.replace('fit_calculator.html'); // Use replace to avoid the user going back to the login page
+            } else {
+                throw new Error(data.message || 'Login failed');
+            }
+        })
+        .catch(error => {
+            console.error('Login error:', error);
+            alert('Login failed: ' + error.message);
+        })
+        .finally(() => {
+            // Hide the loading spinner after the request is done (optional)
+            if (loadingSpinner) loadingSpinner.style.display = 'none';
+        });
+    });
 });
